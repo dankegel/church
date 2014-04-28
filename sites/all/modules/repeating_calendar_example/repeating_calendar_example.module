@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the Repeating Calendar Example feature.
+ */
+
+include_once 'repeating_calendar_example.features.inc';
