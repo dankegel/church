@@ -12,17 +12,46 @@ sqlrootpw="q9z7a1"
 
 # Ubuntu packages we need to install and uninstall in order to
 # reproduce everything cleanly.
-pkgs="mysql-client mysql-server drush php5-gd apache2 libapache2-mod-php5"
+pkgs="mysql-client mysql-server drush php5-gd apache2 libapache2-mod-php5 ssmtp"
 
 do_deps() {
+    # FIXME: move secrets to ~/secrets.dat rathern than hardcoding them
+    # or asking user to edit random files
+    # And use debconf to suppress that password prompt; see
+    # http://askubuntu.com/questions/79257/how-do-i-install-mysql-without-a-password-prompt
+
     echo "When prompted, enter $sqlrootpw for the sql root password."
     sleep 4
     set -x
     sudo apt-get install -y $pkgs
+
+    # Configure ssmtp
+    sudo tee /etc/ssmtp/ssmtp.conf <<_EOF_
+root=postmaster
+UseSTARTTLS=YES
+hostname=`hostname`
+# Edit the following lines
+mailhub=mail.church.org
+RewriteDomain=church.org
+AuthUser=you@church.org
+AuthPass=XXXXXXXX
+_EOF_
+
+    echo "Adding $LOGNAME to mail group.  Won't take effect until next login."
+    sudo useradd -G mail $LOGNAME
+
+    echo "Template created in /etc/ssmtp/ssmtp.conf.  Please edit it,"
+    echo "log out and back in, and make sure you can send mail using /usr/sbin/sendmail."
 }
 
 do_install() {
     cd "$projdir"
+
+    if test -f sites/defaults/settings.php
+    then
+        echo "Already installed, aborting"
+        exit 1
+    fi
 
     # Note: older versions of drush didn't need the 'standard' word
     drush si standard --site-name=Church --db-url=mysql://root:$sqlrootpw@localhost/drupal --account-name=drupal --account-pass=drupal
@@ -37,7 +66,7 @@ do_install() {
         wwwdir=/var/www/html
     fi
 
-    sudo mv $wwwdir $wwwdir.bak
+    sudo mv $wwwdir $wwwdir.bak.$$
     sudo ln -s "$projdir" $wwwdir
     sudo a2enmod rewrite
 
