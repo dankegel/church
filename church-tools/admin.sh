@@ -71,7 +71,7 @@ do_install() {
     sudo a2enmod rewrite
 
     # https://drupal.org/getting-started/clean-urls
-    sudo tee /etc/apache2/sites-enabled/church.conf <<_EOF_
+    sudo tee /etc/apache2/conf-enabled/church.conf > /dev/null <<_EOF_
 <Directory /var/www/html/church-tools>
     Options -Indexes +FollowSymLinks
     AllowOverride None
@@ -87,6 +87,7 @@ do_install() {
     RewriteRule ^ index.php [L]
 </Directory>
 _EOF_
+    sudo service apache2 restart
     # You may also need to set base_url in sites/default/settings.php
 }
 
